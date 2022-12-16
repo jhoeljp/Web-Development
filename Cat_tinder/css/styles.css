@@ -20,6 +20,10 @@ background-color: #ff4c68;
     line-height: 1.5;  
     font-weight: 900;
 }
+.btn-block {
+    display: block;
+    width: 100%;
+  }
 
 .fa-4x{
     color:#ef8172;
@@ -37,7 +41,6 @@ p{
     color:#8f8f8f;
 }
 h2{
-    padding: 2% 15%;
     font-weight: bold;
 }
 
@@ -63,6 +66,7 @@ h2{
     width:15%;
     border-radius: 100%;
     margin: 20px;
+    margin-top: 5%;
 }
 
 
@@ -73,11 +77,20 @@ h2{
     padding-bottom: 3%;
 }
 .press-img{
-    width:13%;
+    width:10%;
     margin:20px;
 }
 
 
 .carousel-item{
     padding: 5% 5%;
+}
+
+/* Pricing section */
+#pricing{
+    padding:90px;
+    text-align: center;
+}
+.pricing-col{
+    padding:3% 2%;
 }
