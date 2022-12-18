@@ -30,26 +30,35 @@ p{
 }
 
 
+/* Sections */
+.colored-section{
+    background-color: #ff4c68;
+    color:white;
+}
+.white-section{
+    background-color: white;
+}
+
 /* Title */
 .title-heading{
     font-size: 4rem;  
     line-height: 1.5;  
     font-weight: 900;
-    color:white;
 }
 
 #title{
-    background-color: #ff4c68;
     padding-bottom: 3%;
 }
 
 .title-sub-img{
-    width:25%;
-    transform:rotate(25deg);
+    width:40%;
+    /* transform:rotate(25deg); */
     position:absolute;
-    right:20%;
+    /* right:20%; */
+    border-radius: 75%;
+    text-align: center;
 }
-.title-navbar{
+#title .container-fluid{
     padding: 1% 5% 2%;
     text-align:left;
 }
@@ -72,7 +81,6 @@ p{
 
 /* features section */
 #features{
-    background-color: white;
     position:relative;
 
     margin: auto;
@@ -97,10 +105,7 @@ p{
 
 
 /* testimonial section  */
-#testimonials{
-    background-color:#ff4c68;
-    color:white;
-}
+
 .testimonial-img{
     width:15%;
     border-radius: 100%;
@@ -114,7 +119,6 @@ p{
 
 /* press section */
 #press{
-    background-color:#ff4c68;
     padding-bottom: 3%;
 }
 .press-img{
@@ -139,11 +143,9 @@ p{
 
 /* Call to Action Section */
 #cta{
-    background-color: #ff4c68;
     padding: 5% 3% 5%;
 }
 .cta-title{
-    color:white;
     padding-bottom: 5%;
     font-size: 2.5rem;  
 }
@@ -153,7 +155,6 @@ p{
 
 /* Footer Section */
 #footer{
-    background-color: white;
     padding: 2% 3% 2%;
 }
 .footer-p{
