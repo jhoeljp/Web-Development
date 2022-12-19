@@ -9,4 +9,3 @@ def hello():
 
 if __name__ == "__main__":
     app.run(debug=True)
-    url_for('static', filename='css/style.css')
