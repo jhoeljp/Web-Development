@@ -5,6 +5,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired
 import requests
+import sqlite3
 
 from os.path import exists
 from os import getcwd
@@ -30,27 +31,36 @@ class Movie(db.Model):
 
 with app.app_context():
     #create dabase if .db file not present 
-    db_path = f"{getcwd()}\\instance\\{DB_NAME}"
+    db_path = f"{getcwd()}\\instance\\{DB_NAME}.db"
 
     if not exists(db_path):
         db.create_all()
+    else:
+        print(f"database {DB_NAME} already exists! ")
 
-    new_movie = Movie(
-    title="Phone Booth",
-    year=2002,
-    description="Publicist Stuart Shepard finds himself trapped in a phone booth, pinned down by an extortionist's sniper rifle. Unable to leave or receive outside help, Stuart's negotiation with the caller leads to a jaw-dropping climax.",
-    rating=7.3,
-    ranking=10,
-    review="My favourite character was the caller.",
-    img_url="https://image.tmdb.org/t/p/w500/tjrX2oWRCM3Tvarz38zlZM7Uc10.jpg"
-    )
+    # new_movie = Movie(
+    #     title="2001 Space Odessey",
+    #     year=1968,
+    #     description="After discovering a monolith on the lunar surface, the Discovery One and its revolutionary supercomputer set out to unravel its mysterious origin.",
+    #     rating=9.2,
+    #     ranking=10,
+    #     review="My favourite space movie.",
+    #     img_url="https://miro.medium.com/max/840/1*oGtJQ6pcuEZMo9A1SEUAJA.jpeg"
+    # )
 
-    db.session.add(new_movie)
-    db.session.commit()
+    # db.session.add(new_movie)
+    # db.session.commit()
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+    #request all records on db 
+    movie_list = []
+    with app.app_context():
+        movie_list = db.session.query(Movie).all()
+        db.session.close()
+
+    print(len(movie_list))
+    return render_template("index.html",movies=movie_list)
 
 
 if __name__ == '__main__':
