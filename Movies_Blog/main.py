@@ -2,7 +2,7 @@ from flask import Flask, render_template, redirect, url_for, request
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
+from wtforms import StringField, SubmitField, FloatField
 from wtforms.validators import DataRequired
 import requests
 import sqlite3
@@ -29,14 +29,20 @@ class Movie(db.Model):
     review = db.Column(db.String(250),nullable=False)
     img_url = db.Column(db.String(250),nullable=False)
 
-with app.app_context():
-    #create dabase if .db file not present 
-    db_path = f"{getcwd()}\\instance\\{DB_NAME}.db"
 
-    if not exists(db_path):
+class RateMovieForm(FlaskForm):
+    rating = FloatField(label='Your Rating out of 10 eg: 7.5',validators=[DataRequired()])
+    review = StringField(label = "Your review",validators=[DataRequired()])
+    submit = SubmitField(label='Submit')
+
+#create dabase if .db file not present 
+db_path = f"{getcwd()}\\instance\\{DB_NAME}.db"
+
+if not exists(db_path):
+    with app.app_context():
         db.create_all()
-    else:
-        print(f"database {DB_NAME} already exists! ")
+else:
+    print(f"database {DB_NAME} already exists! ")
 
     # new_movie = Movie(
     #     title="2001 Space Odessey",
@@ -59,9 +65,33 @@ def home():
         movie_list = db.session.query(Movie).all()
         db.session.close()
 
-    print(len(movie_list))
     return render_template("index.html",movies=movie_list)
 
+@app.route('/edit/<int:row_id>',methods=['GET','POST'])
+def edit(row_id):
+    edit_form = RateMovieForm()
+
+    #get hold of movie on db
+    
+
+    if edit_form.validate_on_submit():
+        #update records 
+        with app.app_context():
+            movie_query = db.session.query(Movie).filter_by(id=row_id).first()
+
+            movie_query.rating = float(edit_form.rating.data)
+            movie_query.review = str(edit_form.review.data)
+
+            db.session.commit()
+
+            return redirect(url_for('home'))
+
+    else:
+        row = {} 
+        with app.app_context():
+            movie_query = db.session.query(Movie).filter_by(id=row_id).first()
+            row = movie_query
+        return render_template('edit.html',form=edit_form,movie=row)
 
 if __name__ == '__main__':
     app.run(debug=True)
