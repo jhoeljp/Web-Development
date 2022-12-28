@@ -61,7 +61,9 @@ else:
 def home():
     #request all records on db 
     movie_list = []
+
     with app.app_context():
+
         movie_list = db.session.query(Movie).all()
         db.session.close()
 
@@ -69,12 +71,13 @@ def home():
 
 @app.route('/edit/<int:row_id>',methods=['GET','POST'])
 def edit(row_id):
+
+    #create edit form with quick forms
     edit_form = RateMovieForm()
 
-    #get hold of movie on db
-    
-
+    #on POST request
     if edit_form.validate_on_submit():
+
         #update records 
         with app.app_context():
             movie_query = db.session.query(Movie).filter_by(id=row_id).first()
@@ -82,6 +85,7 @@ def edit(row_id):
             movie_query.rating = float(edit_form.rating.data)
             movie_query.review = str(edit_form.review.data)
 
+            #save changes to db
             db.session.commit()
 
             return redirect(url_for('home'))
@@ -89,9 +93,25 @@ def edit(row_id):
     else:
         row = {} 
         with app.app_context():
+
+            #fetch row to be updated
             movie_query = db.session.query(Movie).filter_by(id=row_id).first()
             row = movie_query
+
         return render_template('edit.html',form=edit_form,movie=row)
+
+
+@app.route('/delete/<int:row_id>')
+def delete(row_id):
+
+    with app.app_context():
+
+        movie = db.session.query(Movie).filter_by(id=row_id).first()
+        db.session.delete(movie)
+
+        db.session.commit()
+
+    return redirect(url_for('home'))
 
 if __name__ == '__main__':
     app.run(debug=True)
