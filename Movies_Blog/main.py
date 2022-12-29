@@ -91,7 +91,7 @@ def home():
 
     with app.app_context():
 
-        movie_list = db.session.query(Movie).all()
+        movie_list = db.session.query(Movie).order_by(Movie.rating.desc()).all()
         db.session.close()
 
     return render_template("index.html",movies=movie_list)
