@@ -103,20 +103,51 @@ def add():
     if add_form.validate_on_submit():
         #search movie db api for info on movie 
         API_KEY = get_TMDB_Key()
-        if API_KEY=="":print("API_KEY Empty!!!!!! ")
-        else:print(API_KEY)
+
         query = add_form.title.data
 
-        end_point = "https://api.themoviedb.org/3/search/movie?api_key={API_KEY}&language=en-US&query={query}&page=1&include_adult=false"
+        end_point = f"https://api.themoviedb.org/3/search/movie?api_key={API_KEY}&language=en-US&query={query}&page=1&include_adult=false"
 
         response = requests.get(url=end_point).json()
 
-        print(response)
-        return redirect(url_for('home'))
+        results = response['results']
+
+        return render_template('select.html',movies=results)
 
     else:
         return render_template('add.html',form = add_form)
 
+#add movie selected to db using API records
+@app.route('/add_movie/<movie_id>')
+def add_movie(movie_id:str):
+
+    #get API Key 
+    API_KEY = get_TMDB_Key()
+
+    end_point = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={API_KEY}&language=en-US"
+
+    #get api's reponse
+    response = requests.get(url=end_point).json()
+
+    #store data on local database 
+    with app.app_context():
+        movie_title = response['original_title']
+        movie_img_url = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
+        movie_year = (response["release_date"].split('-'))[0]
+        movie_description = response['overview']
+        movie_rating = response["vote_average"]
+
+
+        new_movie = Movie(title=movie_title,img_url=movie_img_url
+                        ,year=movie_year,description=movie_description,rating=movie_rating,
+                        ranking=0.0,review="None")
+
+        db.session.add(new_movie)
+        db.session.commit()
+
+        # query = db.session.query(Movie).filter_by(title=new_movie.title).first()
+        print(f"-----------------------------{new_movie.id}")
+        return redirect(url_for('edit',row_id=new_movie.id))
 
 @app.route('/edit/<int:row_id>',methods=['GET','POST'])
 def edit(row_id):
