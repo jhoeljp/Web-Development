@@ -1,11 +1,15 @@
-from flask import Flask, render_template, redirect, url_for, request
+from flask import Flask, render_template, redirect, url_for
+
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
+
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, FloatField
 from wtforms.validators import DataRequired
+
 import requests
-import sqlite3
+from dotenv import load_dotenv
+from os import environ
 
 from os.path import exists
 from os import getcwd
@@ -19,6 +23,7 @@ DB_NAME = "Movies"
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_NAME}.db"
 db = SQLAlchemy(app)
 
+#databse schema
 class Movie(db.Model):
     id = db.Column(db.Integer,primary_key=True)
     title = db.Column(db.String(250), unique=True, nullable=False)
@@ -29,11 +34,33 @@ class Movie(db.Model):
     review = db.Column(db.String(250),nullable=False)
     img_url = db.Column(db.String(250),nullable=False)
 
-
+#Update movie Form
 class RateMovieForm(FlaskForm):
     rating = FloatField(label='Your Rating out of 10 eg: 7.5',validators=[DataRequired()])
     review = StringField(label = "Your review",validators=[DataRequired()])
     submit = SubmitField(label='Submit')
+
+#Add Movie form 
+class AddMovieForm(FlaskForm):
+    title = StringField(label="Movie title",validators=[DataRequired()])
+    add_movie = SubmitField(label="Add Movie")
+
+#Fetch API key from secret file 
+def get_TMDB_Key():
+    secrets_path = f"{getcwd()}/secrets.env"
+
+    API_KEY = ""
+
+    if exists(secrets_path):
+        load_dotenv(secrets_path)
+        API_KEY = environ.get('KEY')
+    
+    else:
+        msg = 'Missing TMDB API Key on secrets.env ! '
+        print(msg)
+        raise(msg)
+
+    return API_KEY
 
 #create dabase if .db file not present 
 db_path = f"{getcwd()}\\instance\\{DB_NAME}.db"
@@ -68,6 +95,28 @@ def home():
         db.session.close()
 
     return render_template("index.html",movies=movie_list)
+
+@app.route('/add',methods=['GET','POST'])
+def add():
+    add_form = AddMovieForm()
+
+    if add_form.validate_on_submit():
+        #search movie db api for info on movie 
+        API_KEY = get_TMDB_Key()
+        if API_KEY=="":print("API_KEY Empty!!!!!! ")
+        else:print(API_KEY)
+        query = add_form.title.data
+
+        end_point = "https://api.themoviedb.org/3/search/movie?api_key={API_KEY}&language=en-US&query={query}&page=1&include_adult=false"
+
+        response = requests.get(url=end_point).json()
+
+        print(response)
+        return redirect(url_for('home'))
+
+    else:
+        return render_template('add.html',form = add_form)
+
 
 @app.route('/edit/<int:row_id>',methods=['GET','POST'])
 def edit(row_id):
