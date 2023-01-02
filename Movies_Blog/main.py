@@ -57,7 +57,6 @@ def get_TMDB_Key():
     
     else:
         msg = 'Missing TMDB API Key on secrets.env ! '
-        print(msg)
         raise(msg)
 
     return API_KEY
@@ -71,26 +70,15 @@ if not exists(db_path):
 else:
     print(f"database {DB_NAME} already exists! ")
 
-    # new_movie = Movie(
-    #     title="2001 Space Odessey",
-    #     year=1968,
-    #     description="After discovering a monolith on the lunar surface, the Discovery One and its revolutionary supercomputer set out to unravel its mysterious origin.",
-    #     rating=9.2,
-    #     ranking=10,
-    #     review="My favourite space movie.",
-    #     img_url="https://miro.medium.com/max/840/1*oGtJQ6pcuEZMo9A1SEUAJA.jpeg"
-    # )
-
-    # db.session.add(new_movie)
-    # db.session.commit()
-
 @app.route("/")
 def home():
+
     #request all records on db 
     movie_list = []
 
     with app.app_context():
 
+        #fetch all movies by rating 
         movie_list = db.session.query(Movie).order_by(Movie.rating.desc()).all()
         db.session.close()
 
@@ -98,16 +86,21 @@ def home():
 
 @app.route('/add',methods=['GET','POST'])
 def add():
+
+    #generate quick form for movie search
     add_form = AddMovieForm()
 
     if add_form.validate_on_submit():
+
         #search movie db api for info on movie 
         API_KEY = get_TMDB_Key()
 
         query = add_form.title.data
 
+        #TMDB API endpoint
         end_point = f"https://api.themoviedb.org/3/search/movie?api_key={API_KEY}&language=en-US&query={query}&page=1&include_adult=false"
 
+        #make request for info matching title
         response = requests.get(url=end_point).json()
 
         results = response['results']
@@ -131,22 +124,23 @@ def add_movie(movie_id:str):
 
     #store data on local database 
     with app.app_context():
+
+        #new movie data
         movie_title = response['original_title']
         movie_img_url = f"https://image.tmdb.org/t/p/w500{response['poster_path']}"
         movie_year = (response["release_date"].split('-'))[0]
         movie_description = response['overview']
         movie_rating = response["vote_average"]
 
-
+        #populate new movie object
         new_movie = Movie(title=movie_title,img_url=movie_img_url
                         ,year=movie_year,description=movie_description,rating=movie_rating,
                         ranking=0.0,review="None")
 
+        #add new movie to database
         db.session.add(new_movie)
         db.session.commit()
 
-        # query = db.session.query(Movie).filter_by(title=new_movie.title).first()
-        print(f"-----------------------------{new_movie.id}")
         return redirect(url_for('edit',row_id=new_movie.id))
 
 @app.route('/edit/<int:row_id>',methods=['GET','POST'])
@@ -186,6 +180,7 @@ def delete(row_id):
 
     with app.app_context():
 
+        #delete movie matching id
         movie = db.session.query(Movie).filter_by(id=row_id).first()
         db.session.delete(movie)
 
