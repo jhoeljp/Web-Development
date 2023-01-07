@@ -6,6 +6,8 @@ from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired, URL
 from flask_ckeditor import CKEditor, CKEditorField
 
+from datetime import date
+
 
 ## Delete this code:
 # import requests
@@ -13,6 +15,7 @@ from flask_ckeditor import CKEditor, CKEditorField
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret707'
+app.config['CKEDITOR_PKG_TYPE'] = 'basic'
 ckeditor = CKEditor(app)
 Bootstrap(app)
 
@@ -38,7 +41,8 @@ class CreatePostForm(FlaskForm):
     subtitle = StringField("Subtitle", validators=[DataRequired()])
     author = StringField("Your Name", validators=[DataRequired()])
     img_url = StringField("Blog Image URL", validators=[DataRequired(), URL()])
-    body = StringField("Blog Content", validators=[DataRequired()])
+    # body = StringField("Blog Content", validators=[DataRequired()])
+    body= CKEditorField('Body',validators=[DataRequired()])
     submit = SubmitField("Submit Post")
 
 @app.route('/')
@@ -64,12 +68,51 @@ def show_post(post_id):
     with app.app_context():
 
         #fetch post with id 
-        requested_post = db.session.query(BlogPost).filter_by(id=post_id).all()
+        requested_post = db.session.query(BlogPost).filter_by(id=post_id).first()
         db.session.close()
+        
+        #render post           
+        return render_template("post.html", post=requested_post)
 
-    #render post           
-    return render_template("post.html", post=requested_post)
+@app.route('/new-post', methods=['GET','POST'])
+def new_post():
+    #create new make post form 
+    new_form = CreatePostForm()
 
+    #method == 'POST'
+    if new_form.validate_on_submit():
+        #update database with new post info 
+        with app.app_context():
+            
+            #get date published 
+            today = date.today()
+            #format date as August 31, 2019
+            todays_date = f"{today.month} {today.day}, {today.year}"
+
+            #make new blog post Object with "post" form 
+            new_blog_post = BlogPost(title=new_form.title.data,
+                                    subtitle=new_form.subtitle.data,
+                                    date=todays_date,
+                                    body=new_form.body.data,
+                                    author=new_form.author.data,
+                                    img_url=new_form.img_url.data)
+
+            #add and commit changes to database
+            db.session.add(new_blog_post)
+            db.session.commit()
+
+            # db.session.close()
+
+            #finally redirect home 
+            return redirect(url_for('get_all_posts'))
+
+    #method == 'GET'
+    else:
+        #header abckground image
+        style = url_for('static', filename='img/edit-bg.jpg')
+
+        #render make post html 
+        return render_template('make-post.html',make_post_form=new_form,header_style=style)
 
 @app.route("/about")
 def about():
