@@ -41,7 +41,6 @@ class CreatePostForm(FlaskForm):
     subtitle = StringField("Subtitle", validators=[DataRequired()])
     author = StringField("Your Name", validators=[DataRequired()])
     img_url = StringField("Blog Image URL", validators=[DataRequired(), URL()])
-    # body = StringField("Blog Content", validators=[DataRequired()])
     body= CKEditorField('Body',validators=[DataRequired()])
     submit = SubmitField("Submit Post")
 
@@ -108,11 +107,59 @@ def new_post():
 
     #method == 'GET'
     else:
-        #header abckground image
+        #header background image
         style = url_for('static', filename='img/edit-bg.jpg')
 
         #render make post html 
-        return render_template('make-post.html',make_post_form=new_form,header_style=style)
+        return render_template('make-post.html',header_title="New Post",make_post_form=new_form,header_style=style)
+
+@app.route('/edit-post/<int:post_id>',methods=['GET','POST'])
+def edit_post(post_id):
+
+    #create new make post form 
+    new_form = CreatePostForm()
+
+    #When edit post form gets submitted 
+    if new_form.validate_on_submit():
+
+        #update edited post on databse 
+        with app.app_context():
+            #filter by unique field title 
+            post = db.session.query(BlogPost).filter_by(id=post_id).first()
+            
+            #Update database info
+            #date field stays the same
+
+            post.title = new_form.title.data
+            post.subtitle = new_form.subtitle.data
+            post.author = new_form.author.data
+            post.body = new_form.body.data
+            post.img_url = new_form.img_url.data
+
+            db.session.commit()
+            db.session.close()
+
+            #redirect user to post.html 
+            return redirect(url_for('show_post',post_id=post_id))
+    else:
+        with app.app_context():
+
+            #fetch post from database
+            edit_post = db.session.query(BlogPost).filter_by(id=post_id).first()
+
+            db.session.close()
+
+            #pre-fill form with info from database
+            new_form.title.data = edit_post.title
+            new_form.subtitle.data = edit_post.subtitle
+            new_form.author.data = edit_post.author
+            new_form.img_url.data= edit_post.img_url
+            new_form.body.data = edit_post.body
+
+            #header background image
+            style = url_for('static', filename='img/edit-bg.jpg')
+            
+            return render_template('make-post.html',header_title="Edit Post",make_post_form=new_form,header_style=style)
 
 @app.route("/about")
 def about():
