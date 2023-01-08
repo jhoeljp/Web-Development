@@ -141,7 +141,9 @@ def edit_post(post_id):
 
             #redirect user to post.html 
             return redirect(url_for('show_post',post_id=post_id))
+
     else:
+
         with app.app_context():
 
             #fetch post from database
@@ -160,6 +162,22 @@ def edit_post(post_id):
             style = url_for('static', filename='img/edit-bg.jpg')
             
             return render_template('make-post.html',header_title="Edit Post",make_post_form=new_form,header_style=style)
+
+@app.route("/delete/<int:post_id>")
+def delete(post_id):
+
+    with app.app_context():
+        #fetch record
+        post = db.session.query(BlogPost).filter_by(id=post_id).first()
+
+        #delete post 
+        db.session.delete(post)
+        db.session.commit()
+
+        db.session.close()
+
+        return redirect(url_for('get_all_posts'))
+    
 
 @app.route("/about")
 def about():
