@@ -55,20 +55,28 @@ def register():
         #create db object 
         new_user = User(name=name,email=email,password=password)
 
-        with app.app_context():
-            #send to db 
-            db.session.add(new_user)
-            #save on db 
-            db.session.commit()
+        try:
+            with app.app_context():
+                #send to db 
+                db.session.add(new_user)
+                #save on db 
+                db.session.commit()
 
-            db.session.close()
+                db.session.close()
 
-            #send name to secrets 
-            return redirect(url_for('home'))
+                #send name to secrets 
+                return redirect(url_for('home'))
+
+        #Email already on db 
+        except:
+            return render_template("login.html",error="You have already sign up with that email, Log in Instead.")
 
 
 @app.route('/login',methods=['GET','POST'])
 def login():
+
+    error = None
+
     if request.method == 'POST':
 
         email = request.form['email']
@@ -78,20 +86,30 @@ def login():
         #find user on database 
         with app.app_context():
 
-            user = db.session.query(User).filter_by(email=email).first()
-            
-            matched_password = check_password_hash(user.password,password)
+            #fetch user by email 
+            try:
+                user = db.session.query(User).filter_by(email=email).first_or_404()
+                
+                matched_password = check_password_hash(user.password,password)
 
-            db.session.close()
+                db.session.close()
 
-            if matched_password:
+                if matched_password:
 
-                #login user 
-                login_user(user)
+                    #login user 
+                    login_user(user)
 
-                return redirect(url_for('secrets'))
+                    return redirect(url_for('secrets'))
 
-    return render_template("login.html")
+                else:
+                    #Incorrect password error
+                    error = "Incorrect password, please try again !"
+
+            except:
+                #Incorrect email error
+                error = "The email does not exist, please try again !"
+
+    return render_template("login.html",error=error)
 
 @app.route('/secrets')
 @login_required
