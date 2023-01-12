@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash
+from flask import Flask, render_template, redirect, url_for, flash,jsonify
 from flask_bootstrap import Bootstrap
 from flask_ckeditor import CKEditor
 from datetime import date
@@ -8,6 +8,7 @@ from sqlalchemy.orm import relationship
 from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
 from forms import CreatePostForm, RegisterForm, LoginForm
 from flask_gravatar import Gravatar
+from functools import wraps 
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
@@ -39,15 +40,29 @@ class Users(db.Model, UserMixin):
     email = db.Column(db.String(250), nullable=False, unique=True)
     password = db.Column(db.String(250), nullable=False)
 
-with app.app_context():
-    db.create_all()
+#create database tables 
+# with app.app_context():
+#     db.create_all()
 
+#LOGIN MANAGER INIT
 login_manager = LoginManager(app)
 
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.query(Users).filter_by(id=user_id).first()
 
+#ADMIN ONLY DECORATOR 
+@app.errorhandler(403)
+def admin_only(f):
+    @wraps(f)
+    def wrapper():
+        if current_user.get_id() != '1':
+            return render_template('403.html'), 403
+        else:
+            return f()
+    return wrapper
+
+#FLASK APP ROUTES
 
 @app.route('/')
 def get_all_posts():
@@ -76,13 +91,18 @@ def register():
 
                 db.session.commit()
 
-                db.session.close()
-
                 #automatically log in new user 
                 login_user(new_user)
-
+                
                 flash('Logged in successfully.')
-        except:
+
+                #close db session 
+                db.session.close()
+
+                return redirect(url_for('get_all_posts'))
+
+        except Exception as ex:
+
             flash('You have already registered with that email. log in instead !"')
             return redirect(url_for('login'))
 
@@ -147,8 +167,8 @@ def about():
 def contact():
     return render_template("contact.html")
 
-
 @app.route("/new-post")
+@admin_only
 def add_new_post():
     form = CreatePostForm()
     if form.validate_on_submit():
