@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
-from forms import CreatePostForm, RegisterForm, LoginForm
+from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 from flask_gravatar import Gravatar
 from functools import wraps 
 
@@ -21,8 +21,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 db.session.expire_on_commit = False
 
-
-
 ##CONFIGURE TABLES
 class Users(db.Model, UserMixin):
 
@@ -33,7 +31,11 @@ class Users(db.Model, UserMixin):
     email = db.Column(db.String(250), nullable=False, unique=True)
     password = db.Column(db.String(250), nullable=False)
 
+    #One to Many relationship with BlogPost
     posts = relationship("BlogPost", back_populates="author")
+
+    #One to Many relationship wiht Users
+    comments = relationship('Comment',back_populates='author')
 
 
 class BlogPost(db.Model):
@@ -41,15 +43,31 @@ class BlogPost(db.Model):
     __tablename__ = "blog_posts"
     id = db.Column(db.Integer, primary_key=True)
 
-    # author = db.Column(db.String(250), nullable=False)
-    author_id = db.Column(db.Integer,db.ForeignKey('users.id'))
-    author = relationship("Users", back_populates="posts")
-
     title = db.Column(db.String(250), unique=True, nullable=False)
     subtitle = db.Column(db.String(250), nullable=False)
     date = db.Column(db.String(250), nullable=False)
     body = db.Column(db.Text, nullable=False)
     img_url = db.Column(db.String(250), nullable=False)
+
+    #Many to One relationship with Users
+    author_id = db.Column(db.Integer,db.ForeignKey('users.id'))
+    author = relationship("Users", back_populates="posts")
+
+    #One to Many relationship with Comments
+    comments = relationship('Comment',back_populates='blog_post')
+
+class Comment(db.Model):
+    __tablename__ = "comments"
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.Text,nullable=False)
+
+    #Many to One relationship with User
+    author_id = db.Column(db.Integer,db.ForeignKey('users.id'))
+    author = relationship("Users",back_populates='comments')
+
+    #Many to One relationship with BlogPost
+    blog_post_id = db.Column(db.Integer,db.ForeignKey('blog_posts.id'))
+    blog_post = relationship('BlogPost',back_populates='comments')
 
 #create database tables 
 # with app.app_context():
@@ -134,7 +152,6 @@ def login():
     form = LoginForm()
 
     if form.validate_on_submit():
-
         try:
             #check input with Users Table 
             with app.app_context():
@@ -172,10 +189,31 @@ def logout():
     return redirect(url_for('get_all_posts'))
 
 
-@app.route("/post/<int:post_id>")
+@app.route("/post/<int:post_id>",methods=['GET','POST'])
 def show_post(post_id):
     requested_post = BlogPost.query.get(post_id)
-    return render_template("post.html", post=requested_post)
+    comment_form = CommentForm()
+
+    if comment_form.validate_on_submit():
+
+        #check if user is logged in 
+        if current_user.is_authenticated:
+            #create and commit comment to db 
+            new_comment = Comment(
+                text=comment_form.body.data,
+                author = current_user,
+                blog_post = requested_post
+            )
+
+            db.session.add(new_comment)
+            db.session.commit()
+
+        #user not authenticated 
+        else:
+            flash('login is required for leaving a comment! ')
+            return redirect(url_for('login'))
+    post_comments = db.session.query(Comment).filter_by(blog_post_id=post_id).all()
+    return render_template("post.html", post=requested_post,comment=comment_form,all_comments = post_comments)
 
 
 @app.route("/about")
