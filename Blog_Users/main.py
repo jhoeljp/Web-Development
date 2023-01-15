@@ -22,23 +22,32 @@ db = SQLAlchemy(app)
 
 
 ##CONFIGURE TABLES
+class Users(db.Model, UserMixin):
+
+    __tablename__ = "users"
+    id = db.Column(db.Integer, primary_key=True)
+
+    name = db.Column(db.String(250), nullable=False)
+    email = db.Column(db.String(250), nullable=False, unique=True)
+    password = db.Column(db.String(250), nullable=False)
+
+    posts = relationship("BlogPost", back_populates="author")
+
 
 class BlogPost(db.Model):
+
     __tablename__ = "blog_posts"
     id = db.Column(db.Integer, primary_key=True)
-    author = db.Column(db.String(250), nullable=False)
+
+    # author = db.Column(db.String(250), nullable=False)
+    author_id = db.Column(db.Integer,db.ForeignKey('users.id'))
+    author = relationship("Users", back_populates="posts")
+
     title = db.Column(db.String(250), unique=True, nullable=False)
     subtitle = db.Column(db.String(250), nullable=False)
     date = db.Column(db.String(250), nullable=False)
     body = db.Column(db.Text, nullable=False)
     img_url = db.Column(db.String(250), nullable=False)
-
-class Users(db.Model, UserMixin):
-    __tablename__ = "users"
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(250), nullable=False)
-    email = db.Column(db.String(250), nullable=False, unique=True)
-    password = db.Column(db.String(250), nullable=False)
 
 #create database tables 
 # with app.app_context():
@@ -66,9 +75,14 @@ def admin_only(f):
 
 @app.route('/')
 def get_all_posts():
-    with app.app_context():
-        posts = db.session.query(BlogPost).all()
-        return render_template("index.html", all_posts=posts)
+    posts = []
+    try:
+        with app.app_context():
+            posts = db.session.query(BlogPost).all()
+            # db.session.close()
+    except:
+        pass
+    return render_template("index.html", all_posts=posts)
 
 
 @app.route('/register',methods=["GET","POST"])
@@ -167,11 +181,14 @@ def about():
 def contact():
     return render_template("contact.html")
 
-@app.route("/new-post")
+@app.route("/new-post",methods=['GET','POST'])
 @admin_only
 def add_new_post():
+
     form = CreatePostForm()
+
     if form.validate_on_submit():
+
         new_post = BlogPost(
             title=form.title.data,
             subtitle=form.subtitle.data,
@@ -180,9 +197,12 @@ def add_new_post():
             author=current_user,
             date=date.today().strftime("%B %d, %Y")
         )
+
         db.session.add(new_post)
         db.session.commit()
+
         return redirect(url_for("get_all_posts"))
+
     return render_template("make-post.html", form=form)
 
 
