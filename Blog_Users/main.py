@@ -19,6 +19,8 @@ Bootstrap(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+db.session.expire_on_commit = False
+
 
 
 ##CONFIGURE TABLES
@@ -58,7 +60,11 @@ login_manager = LoginManager(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return db.session.query(Users).filter_by(id=user_id).first()
+    user = None
+    with app.app_context():
+        user = db.session.query(Users).filter_by(id=user_id).first()
+        db.session.close()
+    return user
 
 #ADMIN ONLY DECORATOR 
 @app.errorhandler(403)
@@ -77,8 +83,8 @@ def admin_only(f):
 def get_all_posts():
     posts = []
     try:
-        with app.app_context():
-            posts = db.session.query(BlogPost).all()
+        # with app.app_context():
+        posts = db.session.query(BlogPost).all()
             # db.session.close()
     except:
         pass
@@ -197,11 +203,11 @@ def add_new_post():
             author=current_user,
             date=date.today().strftime("%B %d, %Y")
         )
+        with app.app_context():
+            db.session.add(new_post)
+            db.session.commit()
 
-        db.session.add(new_post)
-        db.session.commit()
-
-        return redirect(url_for("get_all_posts"))
+            return redirect(url_for("get_all_posts"))
 
     return render_template("make-post.html", form=form)
 
