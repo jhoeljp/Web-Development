@@ -45,7 +45,7 @@
                 
                 <li>
                     <div class="commenterImage">
-                      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSKr5wT7rfkjkGvNeqgXjBmarC5ZNoZs-H2uMpML8O7Q4F9W-IlUQibBT6IPqyvX45NOgw&usqp=CAU"/>
+                      <img src="{{comment.author.email | gravatar}}"/>
                     </div>
                     <div class="commentText">
                       <p>{{comment.text |safe}}</p>

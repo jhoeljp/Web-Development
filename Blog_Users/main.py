@@ -10,16 +10,33 @@ from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 from flask_gravatar import Gravatar
 from functools import wraps 
 
+#init flask app 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
+
+#init CKEditor for blog post and comments
 ckeditor = CKEditor(app)
+
+#init Bootstrap for styling 
 Bootstrap(app)
 
-##CONNECT TO DB
+#Connect flask app to local db 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+#init sql alchemy for sql queries
 db = SQLAlchemy(app)
 db.session.expire_on_commit = False
+
+#init gravatar for comments section avatars
+gravatar = Gravatar(app,
+                    size=100,
+                    rating='g',
+                    default='retro',
+                    force_default=False,
+                    force_lower=False,
+                    use_ssl=False,
+                    base_url=None)
 
 ##CONFIGURE TABLES
 class Users(db.Model, UserMixin):
